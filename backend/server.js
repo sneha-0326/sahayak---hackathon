@@ -23,14 +23,14 @@ mongoose
     process.exit(1);
   });
 
-// Routes
-app.use("/hospitals", hospitalRoutes);
-app.use("/", screeningRoutes);
-
 // Health check / root
 app.get("/", (req, res) => {
   res.send("SAHAYAK backend is running 🚀");
 });
+
+// Routes
+app.use("/hospitals", hospitalRoutes);
+app.use("/sync", screeningRoutes);
 
 // Basic error handler for unknown routes
 app.use((req, res) => {
@@ -40,5 +40,5 @@ app.use((req, res) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
