@@ -265,6 +265,7 @@ function screenQuestion() {
 
   return `
     <div class="screen-header">
+      <button class="back-btn" onclick="navigate('mode-select')">←</button>
       <span class="screen-title">Screening</span>
     </div>
     <div class="progress-bar-wrap">
@@ -287,9 +288,35 @@ function answer(val) {
     render();
     if (state.audioMode) speakQuestion();
   } else {
-    state.riskLevel = calcRisk(state.answers);
-    navigate('result');
+    calculateRiskAndNavigate();
   }
+}
+
+async function calculateRiskAndNavigate() {
+  try {
+    const res = await fetch('http://localhost:3000/sync/calculate-risk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: state.answers })
+    });
+    const { risk } = await res.json();
+    // backend returns "low"/"medium"/"high", map "medium" to "moderate" for UI
+    state.riskLevel = risk === 'medium' ? 'moderate' : risk;
+  } catch (e) {
+    // fallback to local scoring if backend unreachable
+    state.riskLevel = calcRisk(state.answers);
+  }
+
+  // save screening to DB
+  const mode = state.audioMode ? 'voice' : 'text';
+  const backendRisk = state.riskLevel === 'moderate' ? 'medium' : state.riskLevel;
+  fetch('http://localhost:3000/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ answers: state.answers, mode, risk: backendRisk })
+  }).catch(() => {}); // fire and forget
+
+  navigate('result');
 }
 
 function screenResult() {
@@ -300,12 +327,13 @@ function screenResult() {
     high:     { cls: 'risk-high',     icon: '🚨', label: 'High Risk',     desc: 'Significant symptoms detected. Please visit a hospital immediately.' }
   }[risk];
 
-  const hospitalBtn = risk === 'high'
+  const hospitalBtn = (risk === 'high' || risk === 'moderate')
     ? `<button class="btn btn-danger" onclick="navigate('map')">🏥 Find Hospital</button>`
     : '';
 
   return `
     <div class="screen-header">
+      <button class="back-btn" onclick="navigate('mode-select')">←</button>
       <span class="screen-title">Result</span>
     </div>
     <div class="result-badge">
@@ -333,7 +361,8 @@ function screenMap() {
 function initMap() {
   if (!document.getElementById('map-container')) return;
   if (typeof showHospitalMap === 'function') {
-    showHospitalMap('map-container');
+    const w = state.women[state.selectedWoman];
+    showHospitalMap('map-container', w?.district || '', w?.city || '', w?.state || '');
   } else {
     document.getElementById('map-container').innerHTML =
       '<p style="padding:20px;text-align:center;color:#888;">Map component not loaded.</p>';
