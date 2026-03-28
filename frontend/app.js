@@ -1,10 +1,6 @@
 // ── State ──────────────────────────────────────────────────────────────────
-const state = {
-  screen: 'dashboard',
-  women: JSON.parse(localStorage.getItem('sahayak_women') || '[]'),
-  selectedWoman: null,
-  audioMode: false,
-  questions: [
+const QUESTIONS = {
+  'en-IN': [
     "Does she experience continuous leaking of urine or stool?",
     "Did she have a prolonged or difficult labour (more than 12 hours)?",
     "Was she unable to control urine or stool after delivery?",
@@ -13,6 +9,34 @@ const state = {
     "Did she deliver at home without skilled assistance?",
     "Has she experienced sores or skin irritation in the genital area?"
   ],
+  'hi-IN': [
+    "क्या उसे पेशाब या मल का लगातार रिसाव होता है?",
+    "क्या उसकी प्रसव पीड़ा लंबी या कठिन थी (12 घंटे से अधिक)?",
+    "क्या वह प्रसव के बाद पेशाब या मल को नियंत्रित नहीं कर पाई?",
+    "क्या उसे पूरे दिन अंडरगारमेंट में नमी या गीलापन महसूस होता है?",
+    "क्या उसने गंध या रिसाव के कारण सामाजिक समारोहों से परहेज किया है?",
+    "क्या उसने बिना कुशल सहायता के घर पर प्रसव किया?",
+    "क्या उसे जननांग क्षेत्र में घाव या त्वचा में जलन हुई है?"
+  ]
+};
+
+const ANSWERS = {
+  'en-IN': { yes: 'Yes', sometimes: 'Sometimes', no: 'No' },
+  'hi-IN': { yes: 'हाँ', sometimes: 'कभी-कभी', no: 'नहीं' }
+};
+
+const LANGUAGES = [
+  { code: 'en-IN', label: 'English', name: 'English' },
+  { code: 'hi-IN', label: 'हिंदी', name: 'Hindi' }
+];
+
+const state = {
+  screen: 'dashboard',
+  women: JSON.parse(localStorage.getItem('sahayak_women') || '[]'),
+  selectedWoman: null,
+  audioMode: false,
+  selectedLang: 'hi-IN',
+  questions: [],
   currentQ: 0,
   answers: [],
   riskLevel: null,
@@ -118,22 +142,37 @@ function screenAddWoman() {
       <label>Phone Number</label>
       <input type="tel" id="f-phone" placeholder="Enter phone number" />
     </div>
+    <div class="form-group">
+      <label>State</label>
+      <input type="text" id="f-state" placeholder="Enter state" />
+    </div>
+    <div class="form-group">
+      <label>District</label>
+      <input type="text" id="f-district" placeholder="Enter district" />
+    </div>
+    <div class="form-group">
+      <label>City / Village</label>
+      <input type="text" id="f-city" placeholder="Enter city or village" />
+    </div>
     <div id="form-error" class="error-msg"></div>
     <button class="btn btn-primary" onclick="saveWoman()">💾 Save</button>
   `;
 }
 
 function saveWoman() {
-  const name  = document.getElementById('f-name').value.trim();
-  const age   = document.getElementById('f-age').value.trim();
-  const phone = document.getElementById('f-phone').value.trim();
-  const err   = document.getElementById('form-error');
+  const name     = document.getElementById('f-name').value.trim();
+  const age      = document.getElementById('f-age').value.trim();
+  const phone    = document.getElementById('f-phone').value.trim();
+  const state_   = document.getElementById('f-state').value.trim();
+  const district = document.getElementById('f-district').value.trim();
+  const city     = document.getElementById('f-city').value.trim();
+  const err      = document.getElementById('form-error');
 
-  if (!name || !age || !phone) {
+  if (!name || !age || !phone || !state_ || !district || !city) {
     err.textContent = 'Please fill in all fields.';
     return;
   }
-  state.women.push({ name, age, phone });
+  state.women.push({ name, age, phone, state: state_, district, city });
   saveWomen();
   navigate('women-list');
 }
@@ -151,26 +190,52 @@ function screenProfile() {
     </div>
     <div class="detail-row"><span class="icon">🎂</span> Age: ${w.age}</div>
     <div class="detail-row"><span class="icon">📞</span> ${w.phone}</div>
+    <div class="detail-row"><span class="icon">🏛️</span> ${w.state || '—'}</div>
+    <div class="detail-row"><span class="icon">📍</span> ${w.district || '—'}, ${w.city || '—'}</div>
     <br/>
-    <button class="btn btn-primary" onclick="navigate('mode-select')">🏥 Start Visit</button>
+    <button class="btn btn-primary" onclick="navigate('lang-select')">🏥 Start Visit</button>
   `;
+}
+
+function screenLangSelect() {
+  return `
+    <div class="screen-header">
+      <button class="back-btn" onclick="navigate('profile')">←</button>
+      <span class="screen-title">Select Language</span>
+    </div>
+    <p style="color:#555;font-size:14px;margin-bottom:20px;text-align:center;">Choose the language for questions</p>
+    <div class="lang-grid">
+      ${LANGUAGES.map(l => `
+        <button class="lang-btn ${state.selectedLang === l.code ? 'lang-btn-active' : ''}"
+          onclick="selectLang('${l.code}')">
+          <span class="lang-native">${l.label}</span>
+          <span class="lang-name">${l.name}</span>
+        </button>`).join('')}
+    </div>
+    <button class="btn btn-primary" style="margin-top:24px;" onclick="navigate('mode-select')">Next →</button>
+  `;
+}
+
+function selectLang(code) {
+  state.selectedLang = code;
+  render();
 }
 
 function screenModeSelect() {
   return `
     <div class="screen-header">
-      <button class="back-btn" onclick="navigate('profile')">←</button>
+      <button class="back-btn" onclick="navigate('lang-select')">←</button>
       <span class="screen-title">Choose Mode</span>
     </div>
     <div class="mode-card" onclick="startScreening(true)">
       <div class="mode-icon">🔊</div>
       <h3>Audio Mode</h3>
-      <p>Questions will be read aloud</p>
+      <p>Questions will be read aloud in selected language</p>
     </div>
     <div class="mode-card" onclick="startScreening(false)">
       <div class="mode-icon">👁️</div>
       <h3>Self Mode</h3>
-      <p>Read questions on screen</p>
+      <p>Read questions on screen in selected language</p>
     </div>
   `;
 }
@@ -179,6 +244,7 @@ function startScreening(audio) {
   state.audioMode = audio;
   state.currentQ = 0;
   state.answers = [];
+  state.questions = QUESTIONS[state.selectedLang] || QUESTIONS['en-IN'];
   navigate('question');
   if (audio) speakQuestion();
 }
@@ -187,7 +253,7 @@ function speakQuestion() {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const utt = new SpeechSynthesisUtterance(state.questions[state.currentQ]);
-  utt.lang = 'en-IN';
+  utt.lang = state.selectedLang;
   window.speechSynthesis.speak(utt);
 }
 
@@ -195,6 +261,7 @@ function screenQuestion() {
   const total = state.questions.length;
   const current = state.currentQ + 1;
   const pct = ((current - 1) / total) * 100;
+  const ans = ANSWERS[state.selectedLang] || ANSWERS['en-IN'];
 
   return `
     <div class="screen-header">
@@ -206,9 +273,9 @@ function screenQuestion() {
     <div class="progress-label">Question ${current} of ${total}</div>
     <div class="question-text">${state.questions[state.currentQ]}</div>
     <div class="answer-btns">
-      <button class="btn btn-yes" onclick="answer('yes')">✅ Yes</button>
-      <button class="btn btn-sometimes" onclick="answer('sometimes')">🔄 Sometimes</button>
-      <button class="btn btn-no" onclick="answer('no')">❌ No</button>
+      <button class="btn btn-yes" onclick="answer('yes')">✅ ${ans.yes}</button>
+      <button class="btn btn-sometimes" onclick="answer('sometimes')">🔄 ${ans.sometimes}</button>
+      <button class="btn btn-no" onclick="answer('no')">❌ ${ans.no}</button>
     </div>
   `;
 }
@@ -279,6 +346,7 @@ const screens = {
   'women-list':  screenWomenList,
   'add-woman':   screenAddWoman,
   'profile':     screenProfile,
+  'lang-select': screenLangSelect,
   'mode-select': screenModeSelect,
   'question':    screenQuestion,
   'result':      screenResult,
