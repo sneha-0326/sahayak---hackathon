@@ -259,77 +259,18 @@ function screenMap() {
       <button class="back-btn" onclick="navigate('result')">←</button>
       <span class="screen-title">Nearby Hospitals</span>
     </div>
-    <div id="map"></div>
-    <div class="hospital-list" id="hospital-list">
-      <p style="color:#888;font-size:14px;text-align:center;">Loading hospitals...</p>
-    </div>
+    <div id="map-container"></div>
   `;
 }
 
 function initMap() {
-  if (!document.getElementById('map')) return;
-
-  if (!navigator.geolocation) {
-    document.getElementById('map').innerHTML =
-      '<p style="padding:20px;text-align:center;color:#888;">Location not supported by your browser.</p>';
-    return;
+  if (!document.getElementById('map-container')) return;
+  if (typeof showHospitalMap === 'function') {
+    showHospitalMap('map-container');
+  } else {
+    document.getElementById('map-container').innerHTML =
+      '<p style="padding:20px;text-align:center;color:#888;">Map component not loaded.</p>';
   }
-
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude: lat, longitude: lng } = pos.coords;
-
-    // Load Leaflet dynamically
-    if (!window.L) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = () => renderMap(lat, lng);
-      document.head.appendChild(script);
-    } else {
-      renderMap(lat, lng);
-    }
-  }, () => {
-    document.getElementById('map').innerHTML =
-      '<p style="padding:20px;text-align:center;color:#c62828;">Please enable location access to see nearby hospitals.</p>';
-  });
-}
-
-function renderMap(lat, lng) {
-  const map = L.map('map').setView([lat, lng], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
-
-  L.marker([lat, lng]).addTo(map).bindPopup('📍 You are here').openPopup();
-
-  // Fetch hospitals from backend
-  fetch('/api/hospitals')
-    .then(r => r.json())
-    .then(hospitals => {
-      const list = document.getElementById('hospital-list');
-      if (!list) return;
-      list.innerHTML = '';
-      hospitals.forEach(h => {
-        if (h.lat && h.lng) {
-          L.marker([h.lat, h.lng])
-            .addTo(map)
-            .bindPopup(`🏥 ${h.name}`);
-        }
-        list.innerHTML += `
-          <div class="hospital-item">
-            <span class="icon">🏥</span>
-            <span>${h.name}${h.distance ? ' — ' + h.distance : ''}</span>
-          </div>`;
-      });
-    })
-    .catch(() => {
-      const list = document.getElementById('hospital-list');
-      if (list) list.innerHTML = '<p style="color:#888;font-size:14px;text-align:center;">Could not load hospital data.</p>';
-    });
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────

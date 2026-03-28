@@ -5,11 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sahayak</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <div class="app-wrapper">
     <div class="card" id="app"></div>
   </div>
+  <script type="module">
+    import { showHospitalMap } from './map-component.js';
+    window.showHospitalMap = showHospitalMap;
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
