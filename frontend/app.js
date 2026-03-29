@@ -752,7 +752,6 @@ function initMap() {
 
 // ── Render ─────────────────────────────────────────────────────────────────
 const screens = {
-<<<<<<< HEAD
   'landing':         screenLanding,
   'login':           screenLogin,
   'signup':          screenSignup,
@@ -765,20 +764,9 @@ const screens = {
   'mode-select':     screenModeSelect,
   'comfort-intro':   screenComfortIntro,
   'question':        screenQuestion,
+  'vitals':          screenVitals,
   'result':          screenResult,
   'map':             screenMap
-=======
-  'dashboard':   screenDashboard,
-  'women-list':  screenWomenList,
-  'add-woman':   screenAddWoman,
-  'profile':     screenProfile,
-  'lang-select': screenLangSelect,
-  'mode-select': screenModeSelect,
-  'question':    screenQuestion,
-  'vitals':      screenVitals,
-  'result':      screenResult,
-  'map':         screenMap
->>>>>>> 36a0a58 (Add ML model, synthetic data, 20 questions, full backend integration)
 };
 
 function render() {
