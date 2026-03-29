@@ -31,8 +31,9 @@ const LANGUAGES = [
 ];
 
 const state = {
-  screen: 'dashboard',
-  women: JSON.parse(localStorage.getItem('sahayak_women') || '[]'),
+  screen: 'landing',
+  currentUser: JSON.parse(localStorage.getItem('sahayak_user') || 'null'),
+  women: [],
   selectedWoman: null,
   audioMode: false,
   selectedLang: 'hi-IN',
@@ -43,8 +44,34 @@ const state = {
   lastScreen: 'result'
 };
 
+function goHome() {
+  const role = state.currentUser?.role;
+  navigate(role === 'woman' ? 'woman-dashboard' : 'dashboard');
+}
+
 function saveWomen() {
-  localStorage.setItem('sahayak_women', JSON.stringify(state.women));
+  // no-op — data is now stored in MongoDB
+}
+
+async function loadWomen() {
+  try {
+    const ashaId = state.currentUser?.id;
+    const res = await fetch(`http://localhost:3000/patients?ashaId=${ashaId}`);
+    state.women = await res.json();
+  } catch (e) {
+    state.women = [];
+  }
+}
+
+function saveUser(user) {
+  state.currentUser = user;
+  localStorage.setItem('sahayak_user', JSON.stringify(user));
+}
+
+function logout() {
+  state.currentUser = null;
+  localStorage.removeItem('sahayak_user');
+  navigate('landing');
 }
 
 // ── Router ─────────────────────────────────────────────────────────────────
@@ -68,6 +95,212 @@ function calcRisk(answers) {
 }
 
 // ── Screens ────────────────────────────────────────────────────────────────
+function screenLanding() {
+  return `
+    <div class="landing-hero">
+      <div class="landing-logo">🤰</div>
+      <h1 class="landing-title">Sahayak</h1>
+      <p class="landing-tagline">Empowering ASHA Workers · Protecting Women's Health</p>
+    </div>
+
+    <div class="landing-features">
+      <div class="landing-feature-item">
+        <span>🏥</span>
+        <div>
+          <strong>Early Detection</strong>
+          <p>Screen for obstetric fistula with culturally sensitive questions</p>
+        </div>
+      </div>
+      <div class="landing-feature-item">
+        <span>🔊</span>
+        <div>
+          <strong>Audio & Self Mode</strong>
+          <p>Works for all literacy levels in Hindi & English</p>
+        </div>
+      </div>
+      <div class="landing-feature-item">
+        <span>📍</span>
+        <div>
+          <strong>Find Nearby Hospitals</strong>
+          <p>Instantly locate hospitals based on patient location</p>
+        </div>
+      </div>
+      <div class="landing-feature-item">
+        <span>🔒</span>
+        <div>
+          <strong>Private & Secure</strong>
+          <p>All answers are confidential and securely stored</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="landing-divider">Login as</div>
+    <button class="btn btn-primary" onclick="navigate('login', {loginRole:'asha'})">👩‍⚕️ ASHA Worker</button>
+    <button class="btn btn-secondary" style="margin-top:12px;" onclick="navigate('login', {loginRole:'woman'})">👩 Woman / Patient</button>
+    <p style="text-align:center;margin-top:16px;font-size:14px;color:#888;">New here? <a href="#" onclick="navigate('signup')" style="color:#2e7d32;font-weight:600;">Create Account</a></p>
+  `;
+}
+
+function screenLogin() {
+  const role = state.loginRole || 'asha';
+  const title = role === 'asha' ? 'ASHA Worker Login' : 'Woman Login';
+  return `
+    <div class="screen-header">
+      <button class="back-btn" onclick="navigate('landing')">←</button>
+      <span class="screen-title">${title}</span>
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="l-email" placeholder="Enter email" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="l-password" placeholder="Enter password" />
+    </div>
+    <div id="login-error" class="error-msg"></div>
+    <button class="btn btn-primary" onclick="doLogin('${role}')">Login</button>
+    <p style="text-align:center;margin-top:16px;font-size:14px;color:#888;">No account? <a href="#" onclick="navigate('signup')" style="color:#2e7d32;font-weight:600;">Sign Up</a></p>
+  `;
+}
+
+async function doLogin(role) {
+  const email = document.getElementById('l-email').value.trim();
+  const password = document.getElementById('l-password').value.trim();
+  const err = document.getElementById('login-error');
+
+  if (!email || !password) { err.textContent = 'Please fill in all fields.'; return; }
+
+  try {
+    const res = await fetch('http://localhost:3000/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { err.textContent = data.message; return; }
+    if (data.user.role !== role) { err.textContent = `This account is not registered as ${role === 'asha' ? 'an ASHA Worker' : 'a Woman'}.`; return; }
+    saveUser(data.user);
+    navigate(role === 'asha' ? 'dashboard' : 'woman-dashboard');
+  } catch (e) {
+    err.textContent = 'Could not connect to server. Please try again.';
+  }
+}
+
+function screenSignup() {
+  return `
+    <div class="screen-header">
+      <button class="back-btn" onclick="navigate('landing')">←</button>
+      <span class="screen-title">Sign Up</span>
+    </div>
+    <div class="form-group">
+      <label>Register as</label>
+      <div style="display:flex;gap:12px;margin-bottom:4px;">
+        <button id="role-asha" class="role-btn role-btn-active" onclick="setSignupRole('asha')">👩‍⚕️ ASHA Worker</button>
+        <button id="role-woman" class="role-btn" onclick="setSignupRole('woman')">👩 Woman</button>
+      </div>
+      <input type="hidden" id="s-role" value="asha" />
+    </div>
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="s-name" placeholder="Enter your name" />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="s-email" placeholder="Enter email" />
+    </div>
+    <div class="form-group">
+      <label>Phone Number</label>
+      <input type="tel" id="s-phone" placeholder="Enter phone number" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="s-password" placeholder="Create password" />
+    </div>
+    <div class="form-group">
+      <label>Confirm Password</label>
+      <input type="password" id="s-confirm" placeholder="Confirm password" />
+    </div>
+    <div id="signup-error" class="error-msg"></div>
+    <button class="btn btn-primary" onclick="doSignup()">Create Account</button>
+  `;
+}
+
+function setSignupRole(role) {
+  document.getElementById('s-role').value = role;
+  document.getElementById('role-asha').className = 'role-btn' + (role === 'asha' ? ' role-btn-active' : '');
+  document.getElementById('role-woman').className = 'role-btn' + (role === 'woman' ? ' role-btn-active' : '');
+}
+
+async function doSignup() {
+  const name     = document.getElementById('s-name').value.trim();
+  const email    = document.getElementById('s-email').value.trim();
+  const phone    = document.getElementById('s-phone').value.trim();
+  const password = document.getElementById('s-password').value.trim();
+  const confirm  = document.getElementById('s-confirm').value.trim();
+  const role     = document.getElementById('s-role').value;
+  const err      = document.getElementById('signup-error');
+
+  if (!name || !email || !phone || !password || !confirm) { err.textContent = 'Please fill in all fields.'; return; }
+  if (password !== confirm) { err.textContent = 'Passwords do not match.'; return; }
+  if (password.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+
+  try {
+    const res = await fetch('http://localhost:3000/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, phone, password, role })
+    });
+    const data = await res.json();
+    if (!res.ok) { err.textContent = data.message; return; }
+    saveUser(data.user);
+    navigate(role === 'asha' ? 'dashboard' : 'woman-dashboard');
+  } catch (e) {
+    err.textContent = 'Could not connect to server. Please try again.';
+  }
+}
+
+function screenWomanDashboard() {
+  const user = state.currentUser;
+  return `
+    <div class="landing-hero" style="padding:16px 0 20px;">
+      <div class="landing-logo">👋</div>
+      <h2 style="font-size:22px;color:#1b5e20;font-weight:700;">Welcome, ${user?.name || 'User'}</h2>
+      <p style="font-size:13px;color:#388e3c;">Ready for your health check?</p>
+    </div>
+    <div class="comfort-card">
+      <div class="comfort-icon">💛</div>
+      <h3>About This Screening</h3>
+      <p>Answer a few simple questions about your health. Your answers are completely private and will help identify if you need medical support.</p>
+    </div>
+    <button class="btn btn-primary" onclick="navigate('add-woman')">📋 Update My Details</button>
+    <button class="btn btn-secondary" style="margin-top:12px;" onclick="startWomanScreening()">▶️ Start Screening</button>
+    <button class="btn btn-outline" style="margin-top:20px;" onclick="logout()">🚪 Logout</button>
+  `;
+}
+
+
+async function startWomanScreening() {
+  const user = state.currentUser;
+  try {
+    const res = await fetch(`http://localhost:3000/patients/${user.id}`);
+    if (!res.ok) {
+      alert('Please add your details first before starting the screening.');
+      navigate('add-woman');
+      return;
+    }
+    const patient = await res.json();
+    if (!patient.age || !patient.district || !patient.city) {
+      alert('Please complete your details first.');
+      navigate('add-woman');
+      return;
+    }
+    state.women = [patient];
+    state.selectedWoman = 0;
+    navigate('lang-select');
+  } catch (e) {
+    alert('Could not connect to server. Please try again.');
+  }
+}
 function screenDashboard() {
   return `
     <div class="dashboard-logo">
@@ -77,7 +310,7 @@ function screenDashboard() {
     </div>
     <div class="dashboard-btns">
       <button class="btn btn-primary" onclick="navigate('add-woman')">➕ Add Woman</button>
-      <button class="btn btn-secondary" onclick="navigate('women-list')">👩 View Women</button>
+      <button class="btn btn-secondary" onclick="loadAndShowWomenList()">👩 View Women</button>
     </div>
     <div class="feature-grid">
       <div class="feature-card">
@@ -101,6 +334,7 @@ function screenDashboard() {
         <p>Locate nearby hospitals instantly for high-risk cases</p>
       </div>
     </div>
+    <button class="btn btn-outline" style="margin-top:20px;" onclick="logout()">🚪 Logout</button>
   `;
 }
 
@@ -118,18 +352,24 @@ function screenWomenList() {
 
   return `
     <div class="screen-header">
-      <button class="back-btn" onclick="navigate('dashboard')">←</button>
+      <button class="back-btn" onclick="goHome()">←</button>
       <span class="screen-title">Women</span>
     </div>
     ${items}
   `;
 }
 
+async function loadAndShowWomenList() {
+  await loadWomen();
+  navigate('women-list');
+}
+
 function screenAddWoman() {
+  const isWoman = state.currentUser?.role === 'woman';
   return `
     <div class="screen-header">
-      <button class="back-btn" onclick="navigate('dashboard')">←</button>
-      <span class="screen-title">Add Woman</span>
+      <button class="back-btn" onclick="${isWoman ? "navigate('woman-dashboard')" : "goHome()"}">←</button>
+      <span class="screen-title">Add ${isWoman ? 'My' : 'Woman\'s'} Details</span>
     </div>
     <div class="form-group">
       <label>Full Name</label>
@@ -160,7 +400,7 @@ function screenAddWoman() {
   `;
 }
 
-function saveWoman() {
+async function saveWoman() {
   const name     = document.getElementById('f-name').value.trim();
   const age      = document.getElementById('f-age').value.trim();
   const phone    = document.getElementById('f-phone').value.trim();
@@ -173,9 +413,25 @@ function saveWoman() {
     err.textContent = 'Please fill in all fields.';
     return;
   }
-  state.women.push({ name, age, phone, state: state_, district, city });
-  saveWomen();
-  navigate('women-list');
+
+  try {
+    const userId = state.currentUser?.role === 'woman' ? state.currentUser?.id : null;
+    const ashaId = state.currentUser?.role === 'asha' ? state.currentUser?.id : null;
+    const res = await fetch('http://localhost:3000/patients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, ashaId, name, age, phone, state: state_, district, city })
+    });
+    if (!res.ok) { err.textContent = 'Could not save. Try again.'; return; }
+    await loadWomen();
+    if (state.currentUser?.role === 'woman') {
+      navigate('woman-dashboard');
+    } else {
+      navigate('women-list');
+    }
+  } catch (e) {
+    err.textContent = 'Could not connect to server.';
+  }
 }
 
 function screenProfile() {
@@ -199,9 +455,10 @@ function screenProfile() {
 }
 
 function screenLangSelect() {
+  const isWoman = state.currentUser?.role === 'woman';
   return `
     <div class="screen-header">
-      <button class="back-btn" onclick="navigate('profile')">←</button>
+      <button class="back-btn" onclick="${isWoman ? "navigate('woman-dashboard')" : "navigate('profile')"}">←</button>
       <span class="screen-title">Select Language</span>
     </div>
     <p style="color:#555;font-size:14px;margin-bottom:20px;text-align:center;">Choose the language for questions</p>
@@ -385,7 +642,7 @@ function screenResult() {
     <div class="reassurance-box">
       💛 This is just a health check. Many women face these issues. Help is available and treatment is possible.
     </div>
-    <button class="btn btn-outline" onclick="navigate('dashboard')">🏠 Back to Home</button>
+    <button class="btn btn-outline" onclick="goHome()">🏠 Back to Home</button>
   `;
 }
 
@@ -412,19 +669,27 @@ function initMap() {
 
 // ── Render ─────────────────────────────────────────────────────────────────
 const screens = {
-  'dashboard':     screenDashboard,
-  'women-list':    screenWomenList,
-  'add-woman':     screenAddWoman,
-  'profile':       screenProfile,
-  'lang-select':   screenLangSelect,
-  'mode-select':   screenModeSelect,
-  'comfort-intro': screenComfortIntro,
-  'question':      screenQuestion,
-  'result':        screenResult,
-  'map':           screenMap
+  'landing':         screenLanding,
+  'login':           screenLogin,
+  'signup':          screenSignup,
+  'dashboard':       screenDashboard,
+  'woman-dashboard': screenWomanDashboard,
+  'women-list':      screenWomenList,
+  'add-woman':       screenAddWoman,
+  'profile':         screenProfile,
+  'lang-select':     screenLangSelect,
+  'mode-select':     screenModeSelect,
+  'comfort-intro':   screenComfortIntro,
+  'question':        screenQuestion,
+  'result':          screenResult,
+  'map':             screenMap
 };
 
 function render() {
+  // If user is logged in, skip landing
+  if (state.screen === 'landing' && state.currentUser) {
+    state.screen = state.currentUser.role === 'asha' ? 'dashboard' : 'woman-dashboard';
+  }
   const app = document.getElementById('app');
   app.innerHTML = screens[state.screen]();
   if (state.screen === 'map') initMap();

@@ -5,6 +5,8 @@ const cors = require("cors");
 
 const hospitalRoutes = require("./routes/hospitalRoutes");
 const screeningRoutes = require("./routes/screeningRoutes");
+const authRoutes = require("./routes/authRoutes");
+const patientRoutes = require("./routes/patientRoutes");
 
 const app = express();
 
@@ -31,6 +33,8 @@ app.get("/", (req, res) => {
 // Routes
 app.use("/hospitals", hospitalRoutes);
 app.use("/sync", screeningRoutes);
+app.use("/auth", authRoutes);
+app.use("/patients", patientRoutes);
 
 // Basic error handler for unknown routes
 app.use((req, res) => {

@@ -523,3 +523,107 @@ body {
   line-height: 1.6;
   border: 1px solid #c8e6c9;
 }
+
+/* Auth screens */
+.role-btn {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #c8e6c9;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.15s;
+}
+
+.role-btn-active {
+  background: #2e7d32;
+  color: #fff;
+  border-color: #2e7d32;
+}
+
+/* Landing page */
+.landing-hero {
+  text-align: center;
+  padding: 20px 0 24px;
+  background: linear-gradient(135deg, #e8f5e9 0%, #e3f2fd 100%);
+  border-radius: 20px;
+  margin-bottom: 24px;
+}
+
+.landing-logo {
+  font-size: 56px;
+  margin-bottom: 8px;
+}
+
+.landing-title {
+  font-size: 38px;
+  font-weight: 800;
+  color: #1b5e20;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.landing-tagline {
+  font-size: 13px;
+  color: #388e3c;
+  font-weight: 500;
+}
+
+.landing-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.landing-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #f9fbe7;
+  border-radius: 14px;
+  padding: 14px 16px;
+  border: 1px solid #dcedc8;
+}
+
+.landing-feature-item span {
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.landing-feature-item strong {
+  display: block;
+  font-size: 14px;
+  color: #1b5e20;
+  margin-bottom: 2px;
+}
+
+.landing-feature-item p {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+}
+
+.landing-divider {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.landing-divider::before,
+.landing-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 35%;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.landing-divider::before { left: 0; }
+.landing-divider::after { right: 0; }
