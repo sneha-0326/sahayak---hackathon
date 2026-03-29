@@ -615,6 +615,9 @@ function answer(val) {
 }
 
 async function calculateRiskAndNavigate() {
+  // default fallback first
+  state.riskLevel = calcRisk(state.answers);
+
   try {
     const payload = { ...state.vitals, answers: state.answers };
     const res = await fetch('http://localhost:3000/predict-risk', {
@@ -622,13 +625,14 @@ async function calculateRiskAndNavigate() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    const { risk } = await res.json();
-    state.riskLevel = risk === 'medium' ? 'moderate' : risk;
+    const data = await res.json();
+    if (data.risk) {
+      state.riskLevel = data.risk === 'medium' ? 'moderate' : data.risk;
+    }
   } catch (e) {
-    state.riskLevel = calcRisk(state.answers);
+    console.warn('ML service unreachable, using local scoring');
   }
 
-  // save screening to DB
   const mode = state.audioMode ? 'voice' : 'text';
   const backendRisk = state.riskLevel === 'moderate' ? 'medium' : state.riskLevel;
   fetch('http://localhost:3000/sync', {
@@ -698,12 +702,12 @@ async function submitVitals() {
 }
 
 function screenResult() {
-  const risk = state.riskLevel;
+  const risk = state.riskLevel || 'low';
   const config = {
     low:      { cls: 'risk-low',      icon: '😊', label: 'Low Risk',      desc: 'No immediate concern detected. Continue regular check-ups.' },
     moderate: { cls: 'risk-moderate', icon: '⚠️', label: 'Moderate Risk', desc: 'Some symptoms noted. Please follow up with a health worker.' },
     high:     { cls: 'risk-high',     icon: '🚨', label: 'High Risk',     desc: 'Some symptoms were found. Please visit a nearby hospital for a check-up.' }
-  }[risk];
+  }[risk] || { cls: 'risk-low', icon: '😊', label: 'Low Risk', desc: 'No immediate concern detected. Continue regular check-ups.' };
 
   const hospitalBtn = (risk === 'high' || risk === 'moderate')
     ? `<button class="btn btn-danger" onclick="navigate('map')">🏥 Find Hospital</button>`
