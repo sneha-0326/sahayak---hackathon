@@ -5,7 +5,6 @@ const cors = require("cors");
 
 const hospitalRoutes = require("./routes/hospitalRoutes");
 const screeningRoutes = require("./routes/screeningRoutes");
-const mlRoutes = require("./routes/mlRoutes");
 const authRoutes = require("./routes/authRoutes");
 const patientRoutes = require("./routes/patientRoutes");
 
@@ -15,7 +14,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MongoDB connection
+// MongoDB connection (default URL can be overridden using .env variable)
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/sahayak";
 
 mongoose
@@ -34,7 +33,6 @@ app.get("/", (req, res) => {
 // Routes
 app.use("/hospitals", hospitalRoutes);
 app.use("/sync", screeningRoutes);
-app.use("/predict-risk", mlRoutes);
 app.use("/auth", authRoutes);
 app.use("/patients", patientRoutes);
 
