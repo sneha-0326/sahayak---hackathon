@@ -7,7 +7,15 @@ const QUESTIONS = {
     "Do you feel wet or damp in your undergarments throughout the day?",
     "Have you avoided going out or meeting people because of any smell or wetness?",
     "Did you deliver your baby at home without a trained helper?",
-    "Have you felt any soreness or irritation in your private area?"
+    "Have you felt any soreness or irritation in your private area?",
+    "Did your baby die during delivery or shortly after birth?",
+    "Did your labour pain last more than 2 days before delivery?",
+    "Do you feel pain or burning when you pass urine?",
+    "Do you have any sores or wounds in your private area that are not healing?",
+    "Has a doctor or nurse ever told you that you have a fistula?",
+    "Do you feel pressure or heaviness in your lower abdomen?",
+    "Have you had more than one difficult delivery in the past?",
+    "Did you get married or become pregnant before the age of 18?"
   ],
   'hi-IN': [
     "क्या आपको कभी-कभी बिना चाहे भी गीलापन महसूस होता है?",
@@ -16,7 +24,15 @@ const QUESTIONS = {
     "क्या आपको पूरे दिन अंडरगारमेंट में नमी या गीलापन महसूस होता है?",
     "क्या आपने किसी गंध या गीलेपन के कारण बाहर जाना या लोगों से मिलना कम कर दिया है?",
     "क्या आपने बिना किसी प्रशिक्षित सहायक के घर पर प्रसव किया?",
-    "क्या आपको अपने निजी अंगों में कोई दर्द या जलन महसूस हुई है?"
+    "क्या आपको अपने निजी अंगों में कोई दर्द या जलन महसूस हुई है?",
+    "क्या आपके बच्चे की प्रसव के दौरान या जन्म के तुरंत बाद मृत्यु हो गई थी?",
+    "क्या प्रसव से पहले आपकी प्रसव पीड़ा 2 दिनों से अधिक समय तक रही?",
+    "क्या पेशाब करते समय आपको दर्द या जलन होती है?",
+    "क्या आपके निजी अंगों में कोई घाव या जख्म है जो ठीक नहीं हो रहा?",
+    "क्या किसी डॉक्टर या नर्स ने आपको बताया है कि आपको फिस्टुला है?",
+    "क्या आपको पेट के निचले हिस्से में दबाव या भारीपन महसूस होता है?",
+    "क्या आपको पहले भी एक से अधिक बार कठिन प्रसव हुआ है?",
+    "क्या आपकी शादी या गर्भावस्था 18 साल की उम्र से पहले हुई थी?"
   ]
 };
 
@@ -89,8 +105,8 @@ function calcRisk(answers) {
     if (a === 'notsure') return s + 1;
     return s;
   }, 0);
-  if (score >= 8) return 'high';
-  if (score >= 4) return 'moderate';
+  if (score >= 16) return 'high';
+  if (score >= 8) return 'moderate';
   return 'low';
 }
 
