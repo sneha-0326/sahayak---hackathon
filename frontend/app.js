@@ -1,22 +1,48 @@
 // ── State ──────────────────────────────────────────────────────────────────
 const QUESTIONS = {
   'en-IN': [
-    "Does she experience continuous leaking of urine or stool?",
-    "Did she have a prolonged or difficult labour (more than 12 hours)?",
-    "Was she unable to control urine or stool after delivery?",
-    "Does she feel wetness or dampness in her undergarments throughout the day?",
-    "Has she avoided social gatherings due to smell or leakage?",
-    "Did she deliver at home without skilled assistance?",
-    "Has she experienced sores or skin irritation in the genital area?"
+    "When not urinating, do you experience continuously dripping urine through the birth canal that you cannot stop?",
+    "Does this continuously dripping urine occur both all day and all night?",
+    "Do you leak urine all the time, wetting your clothing both day and night?",
+    "Do you experience sudden leakage of large amounts of urine?",
+    "Does this urine leakage occur when you are NOT coughing or sneezing?",
+    "Does this urine leakage occur without feeling a sudden urge to urinate?",
+    "Does urine leak when you are asleep?",
+    "Do you leak urine for no obvious reason?",
+    "When not having a bowel movement, do you experience feces passing through the birth canal?",
+    "Do you have problems with leakage of feces from the anus that you cannot control?",
+    "Did you have a very long or difficult labor (more than 12 hours) during your last delivery?",
+    "Did you deliver your baby at home without a trained birth attendant?",
+    "Were you below 18 years of age at the time of your first delivery?",
+    "Have you ever had a stillbirth (baby born without signs of life)?",
+    "Have you ever had a C-section or delivery with forceps?",
+    "Do you lose urine during coughing, sneezing, or physical exertion?",
+    "Do you experience a strong sudden urge to urinate and leak before reaching the toilet?",
+    "Have you avoided social gatherings because of smell or wetness?",
+    "Do you use extra cloths or pads to manage constant wetness or leakage?",
+    "Do you feel burning, soreness, or irritation in your private area that does not go away?"
   ],
   'hi-IN': [
-    "क्या उसे पेशाब या मल का लगातार रिसाव होता है?",
-    "क्या उसकी प्रसव पीड़ा लंबी या कठिन थी (12 घंटे से अधिक)?",
-    "क्या वह प्रसव के बाद पेशाब या मल को नियंत्रित नहीं कर पाई?",
-    "क्या उसे पूरे दिन अंडरगारमेंट में नमी या गीलापन महसूस होता है?",
-    "क्या उसने गंध या रिसाव के कारण सामाजिक समारोहों से परहेज किया है?",
-    "क्या उसने बिना कुशल सहायता के घर पर प्रसव किया?",
-    "क्या उसे जननांग क्षेत्र में घाव या त्वचा में जलन हुई है?"
+    "जब आप पेशाब नहीं कर रही हों, तो क्या जन्म नलिका से पेशाब लगातार टपकता रहता है जिसे आप रोक नहीं सकतीं?",
+    "क्या यह लगातार टपकना दिन और रात दोनों समय होता है?",
+    "क्या पेशाब इतना लीक होता है कि दिन-रात कपड़े गीले रहते हैं?",
+    "क्या कभी अचानक बड़ी मात्रा में पेशाब निकल जाता है?",
+    "क्या यह रिसाव खांसने या छींकने के बिना होता है?",
+    "क्या पेशाब करने की इच्छा महसूस हुए बिना रिसाव होता है?",
+    "क्या सोते समय पेशाब लीक होता है?",
+    "क्या बिना किसी कारण के पेशाब लीक होता है?",
+    "क्या शौच न करते समय भी जन्म नलिका से मल निकलता है?",
+    "क्या गुदा से मल का रिसाव होता है जिसे आप नियंत्रित नहीं कर सकतीं?",
+    "क्या आपकी पिछली डिलीवरी में बहुत लंबी या कठिन प्रसव पीड़ा (12 घंटे से अधिक) हुई थी?",
+    "क्या आपने घर पर बिना प्रशिक्षित दाई के बच्चे को जन्म दिया?",
+    "क्या पहली डिलीवरी के समय आपकी उम्र 18 साल से कम थी?",
+    "क्या आपका कभी मृत शिशु (stillbirth) हुआ है?",
+    "क्या आपकी कभी सिजेरियन या फोर्सेप्स डिलीवरी हुई है?",
+    "क्या खांसने, छींकने या शारीरिक मेहनत के दौरान पेशाब निकल जाता है?",
+    "क्या अचानक तेज पेशाब की इच्छा होती है और शौचालय पहुंचने से पहले रिसाव हो जाता है?",
+    "क्या आपने गंध या गीलेपन के कारण सामाजिक समारोहों में जाना बंद कर दिया है?",
+    "क्या आप लगातार गीलेपन को संभालने के लिए अतिरिक्त कपड़े या पैड उपयोग करती हैं?",
+    "क्या आपके निजी अंगों में जलन, दर्द या जलन होती है जो ठीक नहीं होती?"
   ]
 };
 
@@ -40,7 +66,8 @@ const state = {
   currentQ: 0,
   answers: [],
   riskLevel: null,
-  lastScreen: 'result'
+  lastScreen: 'result',
+  vitals: {}
 };
 
 function saveWomen() {
@@ -288,22 +315,21 @@ function answer(val) {
     render();
     if (state.audioMode) speakQuestion();
   } else {
-    calculateRiskAndNavigate();
+    navigate('vitals');
   }
 }
 
 async function calculateRiskAndNavigate() {
   try {
-    const res = await fetch('http://localhost:3000/sync/calculate-risk', {
+    const payload = { ...state.vitals, answers: state.answers };
+    const res = await fetch('http://localhost:3000/predict-risk', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answers: state.answers })
+      body: JSON.stringify(payload)
     });
     const { risk } = await res.json();
-    // backend returns "low"/"medium"/"high", map "medium" to "moderate" for UI
     state.riskLevel = risk === 'medium' ? 'moderate' : risk;
   } catch (e) {
-    // fallback to local scoring if backend unreachable
     state.riskLevel = calcRisk(state.answers);
   }
 
@@ -314,9 +340,66 @@ async function calculateRiskAndNavigate() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ answers: state.answers, mode, risk: backendRisk })
-  }).catch(() => {}); // fire and forget
+  }).catch(() => {});
 
   navigate('result');
+}
+
+function screenVitals() {
+  const w = state.women[state.selectedWoman];
+  return `
+    <div class="screen-header">
+      <button class="back-btn" onclick="navigate('question')">←</button>
+      <span class="screen-title">Medical Vitals</span>
+    </div>
+    <p style="color:#555;font-size:14px;margin-bottom:20px;text-align:center;">Enter her current health readings for ML-based risk prediction</p>
+    <div class="form-group">
+      <label>Age</label>
+      <input type="number" id="v-age" placeholder="e.g. 25" value="${w?.age || ''}" min="10" max="80" />
+    </div>
+    <div class="form-group">
+      <label>Systolic Blood Pressure (mmHg)</label>
+      <input type="number" id="v-sbp" placeholder="e.g. 120" min="70" max="200" />
+    </div>
+    <div class="form-group">
+      <label>Diastolic Blood Pressure (mmHg)</label>
+      <input type="number" id="v-dbp" placeholder="e.g. 80" min="40" max="130" />
+    </div>
+    <div class="form-group">
+      <label>Blood Sugar (mmol/L)</label>
+      <input type="number" id="v-bs" placeholder="e.g. 7.5" step="0.1" min="1" max="30" />
+    </div>
+    <div class="form-group">
+      <label>Body Temperature (°F)</label>
+      <input type="number" id="v-temp" placeholder="e.g. 98.6" step="0.1" min="95" max="105" />
+    </div>
+    <div class="form-group">
+      <label>Heart Rate (bpm)</label>
+      <input type="number" id="v-hr" placeholder="e.g. 76" min="40" max="200" />
+    </div>
+    <div id="vitals-error" class="error-msg"></div>
+    <button class="btn btn-primary" onclick="submitVitals()">🧠 Predict Risk</button>
+  `;
+}
+
+async function submitVitals() {
+  const age       = document.getElementById('v-age').value.trim();
+  const sbp       = document.getElementById('v-sbp').value.trim();
+  const dbp       = document.getElementById('v-dbp').value.trim();
+  const bs        = document.getElementById('v-bs').value.trim();
+  const temp      = document.getElementById('v-temp').value.trim();
+  const hr        = document.getElementById('v-hr').value.trim();
+  const err       = document.getElementById('vitals-error');
+
+  if (!age || !sbp || !dbp || !bs || !temp || !hr) {
+    err.textContent = 'Please fill in all fields.';
+    return;
+  }
+
+  err.textContent = '';
+  state.vitals = { age, systolicBP: sbp, diastolicBP: dbp, bloodSugar: bs, bodyTemp: temp, heartRate: hr };
+
+  await calculateRiskAndNavigate();
 }
 
 function screenResult() {
@@ -378,6 +461,7 @@ const screens = {
   'lang-select': screenLangSelect,
   'mode-select': screenModeSelect,
   'question':    screenQuestion,
+  'vitals':      screenVitals,
   'result':      screenResult,
   'map':         screenMap
 };
