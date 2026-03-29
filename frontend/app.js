@@ -1,28 +1,28 @@
 // ── State ──────────────────────────────────────────────────────────────────
 const QUESTIONS = {
   'en-IN': [
-    "Does she experience continuous leaking of urine or stool?",
-    "Did she have a prolonged or difficult labour (more than 12 hours)?",
-    "Was she unable to control urine or stool after delivery?",
-    "Does she feel wetness or dampness in her undergarments throughout the day?",
-    "Has she avoided social gatherings due to smell or leakage?",
-    "Did she deliver at home without skilled assistance?",
-    "Has she experienced sores or skin irritation in the genital area?"
+    "Do you sometimes feel wetness or dampness even when you don't want to?",
+    "Did you have a very long or difficult delivery (more than 12 hours)?",
+    "After delivery, did you find it hard to control when you pass urine or stool?",
+    "Do you feel wet or damp in your undergarments throughout the day?",
+    "Have you avoided going out or meeting people because of any smell or wetness?",
+    "Did you deliver your baby at home without a trained helper?",
+    "Have you felt any soreness or irritation in your private area?"
   ],
   'hi-IN': [
-    "क्या उसे पेशाब या मल का लगातार रिसाव होता है?",
-    "क्या उसकी प्रसव पीड़ा लंबी या कठिन थी (12 घंटे से अधिक)?",
-    "क्या वह प्रसव के बाद पेशाब या मल को नियंत्रित नहीं कर पाई?",
-    "क्या उसे पूरे दिन अंडरगारमेंट में नमी या गीलापन महसूस होता है?",
-    "क्या उसने गंध या रिसाव के कारण सामाजिक समारोहों से परहेज किया है?",
-    "क्या उसने बिना कुशल सहायता के घर पर प्रसव किया?",
-    "क्या उसे जननांग क्षेत्र में घाव या त्वचा में जलन हुई है?"
+    "क्या आपको कभी-कभी बिना चाहे भी गीलापन महसूस होता है?",
+    "क्या आपकी प्रसव पीड़ा बहुत लंबी या कठिन थी (12 घंटे से अधिक)?",
+    "प्रसव के बाद क्या आपको पेशाब या मल रोकने में कठिनाई होती है?",
+    "क्या आपको पूरे दिन अंडरगारमेंट में नमी या गीलापन महसूस होता है?",
+    "क्या आपने किसी गंध या गीलेपन के कारण बाहर जाना या लोगों से मिलना कम कर दिया है?",
+    "क्या आपने बिना किसी प्रशिक्षित सहायक के घर पर प्रसव किया?",
+    "क्या आपको अपने निजी अंगों में कोई दर्द या जलन महसूस हुई है?"
   ]
 };
 
 const ANSWERS = {
-  'en-IN': { yes: 'Yes', sometimes: 'Sometimes', no: 'No' },
-  'hi-IN': { yes: 'हाँ', sometimes: 'कभी-कभी', no: 'नहीं' }
+  'en-IN': { yes: 'Yes, I face this', sometimes: 'Sometimes this happens', no: "No, I don't face this", notsure: "I'm not sure" },
+  'hi-IN': { yes: 'हाँ, मुझे यह होता है', sometimes: 'कभी-कभी होता है', no: 'नहीं, मुझे यह नहीं होता', notsure: 'मुझे पता नहीं' }
 };
 
 const LANGUAGES = [
@@ -59,6 +59,7 @@ function calcRisk(answers) {
   const score = answers.reduce((s, a) => {
     if (a === 'yes') return s + 2;
     if (a === 'sometimes') return s + 1;
+    if (a === 'notsure') return s + 1;
     return s;
   }, 0);
   if (score >= 8) return 'high';
@@ -245,8 +246,34 @@ function startScreening(audio) {
   state.currentQ = 0;
   state.answers = [];
   state.questions = QUESTIONS[state.selectedLang] || QUESTIONS['en-IN'];
+  navigate('comfort-intro');
+}
+
+function screenComfortIntro() {
+  const isHindi = state.selectedLang === 'hi-IN';
+  const title = isHindi ? 'आप अकेली नहीं हैं 💛' : 'You Are Not Alone 💛';
+  const msg = isHindi
+    ? 'प्रसव के बाद कई महिलाओं को ये समस्याएं होती हैं। यह सामान्य है और इसका इलाज संभव है। आपके जवाब पूरी तरह निजी हैं — कोई नहीं देखेगा।'
+    : 'Many women face these problems after delivery. It is normal and treatable. Your answers are completely private — no one else will see them.';
+  const btn = isHindi ? 'शुरू करें →' : 'Start →';
+
+  return `
+    <div class="screen-header">
+      <button class="back-btn" onclick="navigate('mode-select')">←</button>
+      <span class="screen-title">${isHindi ? 'जानकारी' : 'Before We Begin'}</span>
+    </div>
+    <div class="comfort-card">
+      <div class="comfort-icon">🤝</div>
+      <h3>${title}</h3>
+      <p>${msg}</p>
+    </div>
+    <button class="btn btn-primary" onclick="beginQuestions()">${btn}</button>
+  `;
+}
+
+function beginQuestions() {
   navigate('question');
-  if (audio) speakQuestion();
+  if (state.audioMode) speakQuestion();
 }
 
 function speakQuestion() {
@@ -265,20 +292,31 @@ function screenQuestion() {
 
   return `
     <div class="screen-header">
-      <button class="back-btn" onclick="navigate('mode-select')">←</button>
-      <span class="screen-title">Screening</span>
+      <button class="back-btn" onclick="goBackQuestion()">←</button>
+      <span class="screen-title">Question ${current} of ${total}</span>
     </div>
     <div class="progress-bar-wrap">
       <div class="progress-bar-fill" style="width:${pct}%"></div>
     </div>
-    <div class="progress-label">Question ${current} of ${total}</div>
     <div class="question-text">${state.questions[state.currentQ]}</div>
     <div class="answer-btns">
       <button class="btn btn-yes" onclick="answer('yes')">✅ ${ans.yes}</button>
       <button class="btn btn-sometimes" onclick="answer('sometimes')">🔄 ${ans.sometimes}</button>
       <button class="btn btn-no" onclick="answer('no')">❌ ${ans.no}</button>
+      <button class="btn btn-notsure" onclick="answer('notsure')">🤔 ${ans.notsure}</button>
     </div>
   `;
+}
+
+function goBackQuestion() {
+  if (state.currentQ > 0) {
+    state.currentQ--;
+    state.answers.pop();
+    render();
+    if (state.audioMode) speakQuestion();
+  } else {
+    navigate('comfort-intro');
+  }
 }
 
 function answer(val) {
@@ -324,7 +362,7 @@ function screenResult() {
   const config = {
     low:      { cls: 'risk-low',      icon: '😊', label: 'Low Risk',      desc: 'No immediate concern detected. Continue regular check-ups.' },
     moderate: { cls: 'risk-moderate', icon: '⚠️', label: 'Moderate Risk', desc: 'Some symptoms noted. Please follow up with a health worker.' },
-    high:     { cls: 'risk-high',     icon: '🚨', label: 'High Risk',     desc: 'Significant symptoms detected. Please visit a hospital immediately.' }
+    high:     { cls: 'risk-high',     icon: '🚨', label: 'High Risk',     desc: 'Some symptoms were found. Please visit a nearby hospital for a check-up.' }
   }[risk];
 
   const hospitalBtn = (risk === 'high' || risk === 'moderate')
@@ -344,6 +382,9 @@ function screenResult() {
     </div>
     <p class="result-desc">${config.desc}</p>
     ${hospitalBtn}
+    <div class="reassurance-box">
+      💛 This is just a health check. Many women face these issues. Help is available and treatment is possible.
+    </div>
     <button class="btn btn-outline" onclick="navigate('dashboard')">🏠 Back to Home</button>
   `;
 }
@@ -371,15 +412,16 @@ function initMap() {
 
 // ── Render ─────────────────────────────────────────────────────────────────
 const screens = {
-  'dashboard':   screenDashboard,
-  'women-list':  screenWomenList,
-  'add-woman':   screenAddWoman,
-  'profile':     screenProfile,
-  'lang-select': screenLangSelect,
-  'mode-select': screenModeSelect,
-  'question':    screenQuestion,
-  'result':      screenResult,
-  'map':         screenMap
+  'dashboard':     screenDashboard,
+  'women-list':    screenWomenList,
+  'add-woman':     screenAddWoman,
+  'profile':       screenProfile,
+  'lang-select':   screenLangSelect,
+  'mode-select':   screenModeSelect,
+  'comfort-intro': screenComfortIntro,
+  'question':      screenQuestion,
+  'result':        screenResult,
+  'map':           screenMap
 };
 
 function render() {
